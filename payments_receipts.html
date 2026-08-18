@@ -1,0 +1,356 @@
+<!--
+\nAATL - Payment Entry Custom Print Format (Jinja2)
+\nSame house style as the AATL Tax Invoice / Quotation formats: Courier
+\nNew, black-only, dotted grid, spaced-out signature block.
+\n
+\nInstall: Setup > Printing > Print Format > New
+\n  Doc Type: Payment Entry
+\n  Print Format Type: Jinja
+\n  Paste this whole file into the "Print Format Builder" (HTML) field
+\n-->
+\n
+\n{%- macro add_header(page_num, max_pages, doc, letter_head, no_letterhead, footer, print_settings=None, print_heading_template=None) -%}
+\n    {% if letter_head and not no_letterhead %}
+\n        <div class="letter-head-container" style="margin-bottom: 8px;">{{ letter_head }}</div>
+\n    {% endif %}
+\n{%- endmacro -%}
+\n
+\n<style>
+\n  /* ===== Base ===== */
+\n  .aatl-payment, .aatl-payment * {
+\n    font-family: 'Courier New', Courier, monospace;
+\n    color: #000 !important;
+\n    font-size: 11.5px;
+\n    line-height: 1.4;
+\n    box-sizing: border-box;
+\n  }
+\n  .aatl-payment {
+\n    max-width: 760px;
+\n    margin: 0 auto;
+\n  }
+\n
+\n  /* ===== Header ===== */
+\n  .aatl-payment .header {
+\n    text-align: center;
+\n    margin-bottom: 6px;
+\n    border-bottom: 1px dotted #000;
+\n    padding-bottom: 5px;
+\n  }
+\n  .aatl-payment .header .company-name {
+\n    font-size: 16px;
+\n    font-weight: bold;
+\n    letter-spacing: 1px;
+\n    text-transform: uppercase;
+\n  }
+\n  .aatl-payment .header .company-sub {
+\n    font-size: 11.5px;
+\n    margin-top: 1px;
+\n  }
+\n  .aatl-payment .header .doc-title {
+\n    font-size: 13px;
+\n    font-weight: bold;
+\n    letter-spacing: 2px;
+\n    margin-top: 5px;
+\n    text-transform: uppercase;
+\n  }
+\n
+\n  .aatl-payment .status-badge {
+\n    text-align: center;
+\n    font-weight: bold;
+\n    letter-spacing: 2px;
+\n    margin: 5px 0;
+\n    border: 1px dotted #000;
+\n    padding: 4px;
+\n  }
+\n
+\n  /* ===== Meta grid: 2 columns, LABEL | VALUE rows ===== */
+\n  .aatl-payment .meta-grid {
+\n    display: table;
+\n    width: 100%;
+\n    table-layout: fixed;
+\n    margin-top: 6px;
+\n    margin-bottom: 6px;
+\n    border-top: 1px dotted #000;
+\n    border-bottom: 1px dotted #000;
+\n  }
+\n  .aatl-payment .meta-col {
+\n    display: table-cell;
+\n    width: 50%;
+\n    vertical-align: top;
+\n    padding: 4px 8px;
+\n  }
+\n  .aatl-payment .meta-col + .meta-col {
+\n    border-left: 1px dotted #000;
+\n  }
+\n  .aatl-payment .meta-col-heading {
+\n    font-weight: bold;
+\n    text-transform: uppercase;
+\n    letter-spacing: 0.5px;
+\n    border-bottom: 1px dotted #000;
+\n    padding-bottom: 3px;
+\n    margin-bottom: 3px;
+\n  }
+\n  .aatl-payment .meta-row {
+\n    display: table;
+\n    width: 100%;
+\n    border-bottom: 1px dotted #000;
+\n    padding: 2px 0;
+\n  }
+\n  .aatl-payment .meta-row:last-child {
+\n    border-bottom: none;
+\n  }
+\n  .aatl-payment .meta-label {
+\n    display: table-cell;
+\n    font-weight: bold;
+\n    width: 54%;
+\n  }
+\n  .aatl-payment .meta-sep {
+\n    display: table-cell;
+\n    width: 6%;
+\n  }
+\n  .aatl-payment .meta-value {
+\n    display: table-cell;
+\n    width: 40%;
+\n  }
+\n
+\n  /* ===== Amounts box: real columns with vertical dotted dividers ===== */
+\n  .aatl-payment .amounts-box {
+\n    border: 1px dotted #000;
+\n    margin-top: 6px;
+\n  }
+\n  .aatl-payment .amounts-box table {
+\n    width: 100%;
+\n    border-collapse: collapse;
+\n    table-layout: fixed;
+\n  }
+\n  .aatl-payment .amounts-box th,
+\n  .aatl-payment .amounts-box td {
+\n    border-right: 1px dotted #000;
+\n    border-bottom: 1px dotted #000;
+\n    padding: 1px 6px;
+\n    line-height: 1.15;
+\n  }
+\n  .aatl-payment .amounts-box th:last-child,
+\n  .aatl-payment .amounts-box td:last-child {
+\n    border-right: none;
+\n  }
+\n  .aatl-payment .amounts-box th {
+\n    text-align: left;
+\n    font-weight: bold;
+\n    letter-spacing: 0.5px;
+\n    text-transform: uppercase;
+\n  }
+\n  .aatl-payment .amounts-box th.text-right,
+\n  .aatl-payment .amounts-box td.text-right {
+\n    text-align: right;
+\n  }
+\n  .aatl-payment .amounts-box tr:last-child td {
+\n    border-bottom: none;
+\n  }
+\n
+\n  /* ===== Paid Amount highlight (same pattern as Grand Total) ===== */
+\n  .aatl-payment .net-row {
+\n    display: table;
+\n    width: 100%;
+\n    table-layout: fixed;
+\n    border-top: 1px dotted #000;
+\n    border-bottom: 1px dotted #000;
+\n    font-weight: bold;
+\n    font-size: 13px;
+\n    padding: 6px 8px;
+\n    margin-top: 6px;
+\n  }
+\n  .aatl-payment .net-row .net-label {
+\n    display: table-cell;
+\n    width: 60%;
+\n  }
+\n  .aatl-payment .net-row .net-value {
+\n    display: table-cell;
+\n    width: 40%;
+\n    text-align: right;
+\n  }
+\n
+\n  /* ===== Remarks ===== */
+\n  .aatl-payment .terms-container {
+\n    margin-top: 6px;
+\n    padding: 6px 8px;
+\n    border: 1px dotted #000;
+\n  }
+\n  .aatl-payment .terms-heading {
+\n    font-weight: bold;
+\n    text-transform: uppercase;
+\n    letter-spacing: 0.5px;
+\n    border-bottom: 1px dotted #000;
+\n    padding-bottom: 3px;
+\n    margin-bottom: 3px;
+\n  }
+\n
+\n  /* ===== Footer signatures ===== */
+\n  .aatl-payment .footer {
+\n    margin-top: 55px;
+\n    display: table;
+\n    width: 100%;
+\n    table-layout: fixed;
+\n  }
+\n  .aatl-payment .footer .cell {
+\n    display: table-cell;
+\n    width: 50%;
+\n    text-align: center;
+\n  }
+\n  .aatl-payment .footer .sig-line {
+\n    margin: 10px 20px 3px 20px;
+\n    border-bottom: 1px dotted #000;
+\n  }
+\n
+\n  @media print {
+\n    .aatl-payment * {
+\n      -webkit-print-color-adjust: exact !important;
+\n      print-color-adjust: exact !important;
+\n      color-adjust: exact !important;
+\n    }
+\n  }
+\n</style>
+\n
+\n{% for page in layout %}
+\n<div class="aatl-payment">
+\n  {{ add_header(loop.index, layout|len, doc, letter_head, no_letterhead, footer, print_settings) }}
+\n
+\n  <div class="header">
+\n    <div class="company-name">{{ doc.company }}</div>
+\n    <div class="company-sub">
+\n      {% if frappe.db.get_value("Company", doc.company, "tax_id") %}
+\n        TIN: {{ frappe.db.get_value("Company", doc.company, "tax_id") }}
+\n      {% endif %}
+\n    </div>
+\n    <div class="doc-title">Payment Receipt</div>
+\n  </div>
+\n
+\n  {%- if doc.docstatus==2 -%}
+\n    <div class="status-badge">{{ _("CANCELLED") }}</div>
+\n  {%- endif -%}
+\n  {%- if doc.docstatus==0 -%}
+\n    <div class="status-badge">{{ _("DRAFT") }}</div>
+\n  {%- endif -%}
+\n
+\n  {#- Currency label used to prefix amounts (falls back to TZS if the
+\n      account currency fields aren't set on this record). -#}
+\n  {% set cur = doc.get("paid_to_account_currency") or doc.get("paid_from_account_currency") or doc.get("currency") or "TZS" %}
+\n  {% set paid_to_type = frappe.db.get_value("Account", doc.paid_to, "account_type") if doc.paid_to else "" %}
+\n
+\n  <div class="meta-grid">
+\n    <div class="meta-col">
+\n      <div class="meta-col-heading">{{ _("Payment Details") }}</div>
+\n      <div class="meta-row">
+\n        <div class="meta-label">PAYMENT ENTRY NO</div>
+\n        <div class="meta-sep">|</div>
+\n        <div class="meta-value">{{ doc.name }}</div>
+\n      </div>
+\n      <div class="meta-row">
+\n        <div class="meta-label">POSTING DATE</div>
+\n        <div class="meta-sep">|</div>
+\n        <div class="meta-value">{{ frappe.utils.format_date(doc.posting_date) }}</div>
+\n      </div>
+\n      <div class="meta-row">
+\n        <div class="meta-label">MODE OF PAYMENT</div>
+\n        <div class="meta-sep">|</div>
+\n        <div class="meta-value">{{ doc.mode_of_payment or "" }}</div>
+\n      </div>
+\n      <div class="meta-row">
+\n        <div class="meta-label">PARTY</div>
+\n        <div class="meta-sep">|</div>
+\n        <div class="meta-value">{{ doc.party or "" }}</div>
+\n      </div>
+\n      <div class="meta-row">
+\n        <div class="meta-label">PARTY NAME</div>
+\n        <div class="meta-sep">|</div>
+\n        <div class="meta-value">{{ doc.party_name or "" }}</div>
+\n      </div>
+\n      <div class="meta-row">
+\n        <div class="meta-label">CHEQUE/REFERENCE DATE</div>
+\n        <div class="meta-sep">|</div>
+\n        <div class="meta-value">{{ frappe.utils.format_date(doc.reference_date) if doc.reference_date else "" }}</div>
+\n      </div>
+\n    </div>
+\n    <div class="meta-col">
+\n      <div class="meta-col-heading">{{ _("Account & Status") }}</div>
+\n      <div class="meta-row">
+\n        <div class="meta-label">PAID TO ACC. TYPE</div>
+\n        <div class="meta-sep">|</div>
+\n        <div class="meta-value">{{ paid_to_type }}</div>
+\n      </div>
+\n      <div class="meta-row">
+\n        <div class="meta-label">BRANCH</div>
+\n        <div class="meta-sep">|</div>
+\n        <div class="meta-value">{{ doc.branch or "" }}</div>
+\n      </div>
+\n      <div class="meta-row">
+\n        <div class="meta-label">PAYMENT ORDER STATUS</div>
+\n        <div class="meta-sep">|</div>
+\n        <div class="meta-value">{{ doc.get("payment_order_status") or "" }}</div>
+\n      </div>
+\n    </div>
+\n  </div>
+\n
+\n  <div class="amounts-box">
+\n    <table>
+\n      <thead>
+\n        <tr>
+\n          <th style="width:52%">Payment Descriptions</th>
+\n          <th class="text-right" style="width:48%">Amount</th>
+\n        </tr>
+\n      </thead>
+\n      <tbody>
+\n        <tr>
+\n          <td>Paid Amount After Tax</td>
+\n          <td class="text-right">{{ cur }} {{ "{:,.2f}".format(doc.get("paid_amount_after_tax") or doc.paid_amount or 0) }}</td>
+\n        </tr>
+\n        <tr>
+\n          <td>Received Amount After Tax</td>
+\n          <td class="text-right">{{ cur }} {{ "{:,.2f}".format(doc.get("received_amount_after_tax") or doc.get("received_amount") or 0) }}</td>
+\n        </tr>
+\n        <tr>
+\n          <td>Bank Charges</td>
+\n          <td class="text-right">{{ "{:,.2f}".format(doc.get("bank_charges") or 0) }}</td>
+\n        </tr>
+\n        <tr>
+\n          <td>Total Taxes and Charges</td>
+\n          <td class="text-right">{{ cur }} {{ "{:,.2f}".format(doc.get("total_taxes_and_charges") or 0) }}</td>
+\n        </tr>
+\n        <tr>
+\n          <td>Exchange Difference</td>
+\n          <td class="text-right">{{ cur }} {{ "{:,.2f}".format(doc.get("exchange_difference") or doc.get("difference_amount") or 0) }}</td>
+\n        </tr>
+\n      </tbody>
+\n    </table>
+\n  </div>
+\n
+\n  <div class="net-row">
+\n    <div class="net-label">PAID AMOUNT ({{ cur }})</div>
+\n    <div class="net-value">{{ cur }} {{ "{:,.2f}".format(doc.paid_amount or 0) }}</div>
+\n  </div>
+\n
+\n  {% if doc.remarks %}
+\n  <div class="terms-container">
+\n    <div class="terms-heading">{{ _("Narration") }}</div>
+\n    <div>{{ doc.remarks }}</div>
+\n  </div>
+\n  {% endif %}
+\n
+\n  <div class="footer">
+\n    <div class="cell">
+\n      <div class="sig-line"></div>
+\n      Prepared By
+\n    </div>
+\n    <div class="cell">
+\n      <div class="sig-line"></div>
+\n      Received By
+\n    </div>
+\n  </div>
+\n
+\n  {% if not no_letterhead and footer %}
+\n    <div class="print-footer" style="margin-top: 12px;">
+\n      {{ footer }}
+\n    </div>
+\n  {% endif %}
+\n</div>
+\n{% endfor %}
